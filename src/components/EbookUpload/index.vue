@@ -3,6 +3,8 @@
     <el-upload
       :action="action"
       :headers="headers"
+      :multiple="false"
+      :limit="1"
     >请上传</el-upload>
   </div>
 </template>
