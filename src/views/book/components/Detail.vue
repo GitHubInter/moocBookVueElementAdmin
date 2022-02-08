@@ -55,7 +55,7 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="根文件：" :label-width="labelWidth">
+              <el-form-item prop="rootFile" label="根文件：" :label-width="labelWidth">
                 <el-input
                   v-model="postForm.rootFile"
                   placeholder="根文件"
@@ -66,7 +66,7 @@
           </el-row>
           <el-row>
             <el-col :span="12">
-              <el-form-item label="文件路径：" :label-width="labelWidth">
+              <el-form-item prop="filePath" label="文件路径：" :label-width="labelWidth">
                 <el-input
                   v-model="postForm.coverPath"
                   placeholder="文件路径"
@@ -75,7 +75,7 @@
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="解压路径：" :label-width="labelWidth">
+              <el-form-item prop="unzipPath" label="解压路径：" :label-width="labelWidth">
                 <el-input
                   v-model="postForm.unzipPath"
                   placeholder="解压路径"
@@ -86,16 +86,16 @@
           </el-row>
           <el-row>
             <el-col :span="12">
-              <el-form-item label="封面路径：" :label-width="labelWidth">
+              <el-form-item prop="coverPath" label="封面路径：" :label-width="labelWidth">
                 <el-input
-                  v-model="postForm.Path"
+                  v-model="postForm.coverPath"
                   placeholder="封面路径"
                   disabled
                 />
               </el-form-item>
             </el-col>
             <el-col :span="12">
-              <el-form-item label="文件名称：" :label-width="labelWidth">
+              <el-form-item prop="originalName" label="文件名称：" :label-width="labelWidth">
                 <el-input
                   v-model="postForm.originalName"
                   placeholder="文件名称"
@@ -106,7 +106,7 @@
           </el-row>
           <el-row>
             <el-col :span="24">
-              <el-form-item label="封面图片：" :label-width="labelWidth">
+              <el-form-item prop="cover" label="封面图片：" :label-width="labelWidth">
                 <a v-if="postForm.cover" :href="postForm.cover" target="_blank">
                   <img :src="postForm.cover" alt="" class="preview-img">
                 </a>
@@ -117,7 +117,7 @@
           <el-row>
             <el-col :span="24">
               <el-form-item label="目录：" :label-width="labelWidth">
-                <div v-if="postForm.contents && postForm.contents.length > 0" class="contents-wrapper">
+                <div v-if="contentsTree && contentsTree.length > 0" class="contents-wrapper">
                   <el-tree :data="contentsTree" @node-click="onContentClick" />
                 </div>
                 <span v-else>无</span>
@@ -135,21 +135,22 @@ import Sticky from '../../../components/Sticky'
 import Warning from './Warning.vue'
 import EbookUpload from '@/components/EbookUpload'
 import MdInput from '@/components/MDinput'
+import { createBook, getBook } from '../../../api/book'
 
-const defaultForm = {
-  title: '',
-  author: '',
-  publisher: '',
-  language: '',
-  rootFile: '',
-  cover: '',
-  url: '',
-  originalName: '',
-  fileName: '',
-  filePath: '',
-  coverPath: '',
-  unzipPath: ''
-}
+// const defaultForm = {
+//   title: '',
+//   author: '',
+//   publisher: '',
+//   language: '',
+//   rootFile: '',
+//   cover: '',
+//   url: '',
+//   originalName: '',
+//   fileName: '',
+//   filePath: '',
+//   coverPath: '',
+//   unzipPath: ''
+// }
 
 const fields = {
   title: '书名',
@@ -188,7 +189,18 @@ export default {
       }
     }
   },
+  created() {
+    if (this.isEdit) {
+      const fileName = this.$route.params.fileName
+      this.getBookData(fileName)
+    }
+  },
   methods: {
+    getBookData(fileName) {
+      getBook(fileName).then(response => {
+        this.setData(response.data)
+      })
+    },
     onContentClick(data) {
       if (data.text) {
         window.open(data.text)
@@ -228,11 +240,15 @@ export default {
         coverPath,
         unzipPath
       }
+      console.log('contentsTree', contentsTree)
       this.contentsTree = contentsTree
+      this.fileList = [{ name: originalName, url }]
     },
     setDefault() {
-      this.postForm = Object.assign({}, defaultForm)
+      // this.postForm = Object.assign({}, defaultForm)
       this.contentsTree = []
+      this.fileList = []
+      this.$refs.postForm.resetFields()
     },
     onUploadSuccess(data) {
       console.log('onUploadSuccess', data)
@@ -248,7 +264,26 @@ export default {
         this.$refs.postForm.validate((valid, fields) => {
           console.log(valid, fields)
           if (valid) {
-            // 111
+            const book = Object.assign({}, this.postForm)
+            // delete book.contents
+            delete book.contentsTree
+            if (!this.isEdit) {
+              createBook(book).then(response => {
+                const { msg } = response
+                this.$notify({
+                  title: '操作成功',
+                  message: msg,
+                  type: 'success',
+                  duration: 2000
+                })
+                this.loading = false
+                this.setDefault()
+              }).catch(() => {
+                this.loading = false
+              })
+            } else {
+              // updateBook(book)
+            }
           } else {
             const message = fields[Object.keys(fields)[0]][0].message
             this.$message({ message, type: 'error' })

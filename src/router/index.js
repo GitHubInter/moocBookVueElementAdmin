@@ -105,7 +105,7 @@ export const asyncRoutes = [
         meta: { title: '图书列表', icon: 'list', roles: ['admin'] }
       },
       {
-        path: '/book/edit',
+        path: '/book/edit/:fileName',
         component: () => import('@/views/book/edit'),
         name: 'bookEdit',
         hidden: true,
